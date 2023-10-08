@@ -243,6 +243,10 @@ switch ((PA >> 1) & 01) {                               /* decode PA<1> */
             ta_go ();                                   /* start operation */
         if (ta_cs & TACS_ILBS)                          /* ILBS inhibits TR */
             ta_cs &= ~TACS_TR;
+
+        if (GET_FNC(ta_cs) == TACS_REW)                 /* MAINDEC-11-DZTAA-C-D at PC=005630 */
+            ta_cs &= ~TACS_ERR;
+
         break;
 
     case 1:                                             /* TADB */
@@ -299,7 +303,7 @@ if ((fnc != TACS_REW) && !(flg & OP_WRI)) {             /* spc/read cmd? */
         if (st != MTSE_TMK)                             /* not there? */
             sim_tape_rewind (uptr);                     /* restore tap pos */
         else old_ust = 0;                               /* defang next */
-        }
+    }
     if ((old_ust ^ uptr->UST) == (UST_REV|UST_GAP)) {   /* reverse in gap? */
         if (uptr->UST)                                  /* skip file gap */
             (void)sim_tape_rdrecr (uptr, ta_xb, &t, TA_MAXFR);
@@ -336,9 +340,17 @@ if (((flg & OP_FWD) && sim_tape_eot (uptr)) ||          /* illegal motion? */
     return SCPE_OK;
     }
 
+//
+// MTSE_TMK may setted on READ, SFB, SRF, and SFF functions.
+// ERROR with MTSE_TMK may setted only on READ and SFB
+// "Cassette System Maintenance Manual", 2nd printing, 1974.01, page 3.2
+//
+
 r = SCPE_OK;
 switch (uptr->FNC) {                                    /* case on function */
 
+    // MTSE_TMK may setted on READ, SFB, SRF, and SFF functions.
+    // ERROR with MTSE_TMK may setted only on READ and SFB
     case TACS_READ:                                     /* read start */
         st = sim_tape_rdrecf (uptr, ta_xb, &ta_blnt, TA_MAXFR); /* get rec */
         if (st == MTSE_RECE)                            /* rec in err? */
@@ -410,20 +422,27 @@ switch (uptr->FNC) {                                    /* case on function */
         break;                                          /* op done */
 
     case TACS_WFG:                                      /* write file gap */
-        if ((st = sim_tape_wrtmk (uptr)))               /* write tmk, err? */
-            r = ta_map_err (uptr, st);                  /* map error */
+        if ((st = sim_tape_wrtmk (uptr))) {             /* write tmk, err? */
+            if (st != MTSE_TMK)                         /* if tape mark, */
+                r = ta_map_err (uptr, st);              /* map error */
+        }
         break;
 
     case TACS_REW:                                      /* rewind */
         sim_tape_rewind (uptr);
+        ta_cs &= ~TACS_ERR;                             /* bot, no error */
         ta_cs |= TACS_BEOT;                             /* bot, no error */
         break;
 
     case TACS_SRB:                                      /* space rev blk */
-        if ((st = sim_tape_sprecr (uptr, &tbc)))        /* space rev, err? */
-            r = ta_map_err (uptr, st);                  /* map error */
+        if ((st = sim_tape_sprecr(uptr, &tbc))) {       /* space rev, err? */
+            if (st != MTSE_TMK)                         /* if tape mark, */
+                r = ta_map_err(uptr, st);               /* map error */
+         }
          break;
 
+    // MTSE_TMK may setted on READ, SFB, SRF, and SFF functions.
+    // ERROR with MTSE_TMK may setted only on READ and SFB
     case TACS_SRF:                                      /* space rev file */
         while ((st = sim_tape_sprecr (uptr, &tbc)) == MTSE_OK) ;
         if (st == MTSE_TMK)                             /* if tape mark, */
@@ -431,12 +450,28 @@ switch (uptr->FNC) {                                    /* case on function */
         else r = ta_map_err (uptr, st);                 /* else map error */
         break;
 
+    // MTSE_TMK may setted on READ, SFB, SRF, and SFF functions.
+    // ERROR with MTSE_TMK may setted only on READ and SFB
+    // "Cassette System Maintenance Manual", 2nd printing, 1974.01, page 3.7, paragraph 3.3.7 Space Forward Block (SFB) 
     case TACS_SFB:                                      /* space fwd blk */
-        if ((st = sim_tape_sprecf (uptr, &tbc)))        /* space rev, err? */
-            r = ta_map_err (uptr, st);                  /* map error */
+        st = sim_tape_sprecf(uptr, &tbc);               /* space fwd, err? */
+        if (st)
+        {
+            if (st == MTSE_TMK)
+            {
+                ta_cs |= TACS_EOF;
+                st = sim_tape_sprecr(uptr, &tbc);
+                if (st != MTSE_TMK)
+                    r = ta_map_err(uptr, st);
+            }
+            else
+                r = ta_map_err(uptr, st);               /* map error */
+        }
         ta_cs |= TACS_CRC;                              /* CRC sets, no err */
         break;
 
+    // MTSE_TMK may setted on READ, SFB, SRF, and SFF functions.
+    // ERROR with MTSE_TMK may setted only on READ and SFB
     case TACS_SFF:                                      /* space fwd file */
         while ((st = sim_tape_sprecf (uptr, &tbc)) == MTSE_OK) ;
         if (st == MTSE_TMK)                             /* if tape mark, */
@@ -473,6 +508,27 @@ if ((ta_cs & TACS_IE) &&                                /* int enabled? */
     (ta_cs & (TACS_TR|TACS_RDY)))                       /* req or ready? */
     SET_INT (TA);                                       /* set int req */
 else CLR_INT (TA);                                      /* no, clr int req */
+
+//
+// "Cassette System Maintenance Manual", 2nd printing, 1974.01, page 3.2
+// "CLEAR LEADER Indicates that the currently selected cassette is at end of tape (EOT) 
+//  or beginning of tape(BOT).Sets ERROR for all functions except REWIND"
+//
+
+uint32 fnc = uptr->FNC & TACS_M_FNC;
+uint32 isBOTErr = (fnc == TACS_SRF) || (fnc == TACS_SRB) ? TACS_ERR : 0;
+uint32 isEOTErr = (fnc == TACS_SFF) || (fnc == TACS_SFB) ? TACS_ERR : 0;
+
+if (sim_tape_bot(uptr)) {
+    ta_cs |= isBOTErr | TACS_BEOT;
+}
+else if (sim_tape_eot(uptr)) {
+    ta_cs |= isEOTErr | TACS_BEOT;
+}
+else {
+    ta_cs &= ~TACS_BEOT;
+}
+
 return ta_cs;
 }
 
@@ -525,7 +581,7 @@ return crc;
 
 t_stat ta_map_err (UNIT *uptr, t_stat st)
 {
-switch (st) {
+    switch (st) {
 
     case MTSE_FMT:                                      /* illegal fmt */
     case MTSE_UNATT:                                    /* unattached */
@@ -562,6 +618,26 @@ switch (st) {
         break;
         }
 
+    //
+    // "Cassette System Maintenance Manual", 2nd printing, 1974.01, page 3.2
+    // "CLEAR LEADER Indicates that the currently selected cassette is at end of tape (EOT) 
+    //  or beginning of tape(BOT).Sets ERROR for all functions except REWIND"
+    //
+
+    uint32 fnc = uptr->FNC & 7;
+    uint32 isBOTErr = (fnc == TACS_SRF) || (fnc == TACS_SRB) ? TACS_ERR : 0;
+    uint32 isEOTErr = (fnc == TACS_SFF) || (fnc == TACS_SFB) ? TACS_ERR : 0;
+
+    if (sim_tape_bot(uptr)) {
+        ta_cs |= isBOTErr | TACS_BEOT;
+    }
+    else if (sim_tape_eot(uptr)) {
+        ta_cs |= isEOTErr | TACS_BEOT;
+    }
+    else {
+        ta_cs &= ~TACS_BEOT;
+    }
+
 return SCPE_OK;
 }
 
@@ -572,7 +648,10 @@ t_stat ta_reset (DEVICE *dptr)
 uint32 u;
 UNIT *uptr;
 
-ta_cs = TACS_RDY;                                       /* init sets RDY */
+//
+// MAINDEC-11-DZTAA-C-D at PC=??????
+//
+ta_cs = TACS_ERR|TACS_RDY;                              /* init sets RDY */
 ta_idb = 0;
 ta_odb = 0;
 ta_write = 0;
