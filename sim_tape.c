@@ -35,8 +35,8 @@
                             sim_tape_sprecsr    - skip records rev
                             sim_tape_spfiler    - skip files rev
                             sim_tape_position   - general purpose position
-                        These routines correspond to natural tape operations 
-                        and will align better when physical tape support is 
+                        These routines correspond to natural tape operations
+                        and will align better when physical tape support is
                         included here.
    08-Jun-08    JDB     Fixed signed/unsigned warning in sim_tape_set_fmt
    23-Jan-07    JDB     Fixed backspace over gap at BOT
@@ -71,7 +71,7 @@
    sim_tape_errecf      erase record forward
    sim_tape_errecr      erase record reverse
    sim_tape_sprecsf     space records forward
-   sim_tape_spfilef     space files forward 
+   sim_tape_spfilef     space files forward
    sim_tape_sprecsr     space records reverse
    sim_tape_spfiler     space files reverse
    sim_tape_position    generalized position
@@ -229,8 +229,8 @@ _tape_io(void *arg)
 UNIT* volatile uptr = (UNIT*)arg;
 struct tape_context *ctx = (struct tape_context *)uptr->tape_ctx;
 
-    /* Boost Priority for this I/O thread vs the CPU instruction execution 
-       thread which in general won't be readily yielding the processor when 
+    /* Boost Priority for this I/O thread vs the CPU instruction execution
+       thread which in general won't be readily yielding the processor when
        this thread needs to run */
     sim_os_set_thread_priority (PRIORITY_ABOVE_NORMAL);
 
@@ -308,14 +308,14 @@ struct tape_context *ctx = (struct tape_context *)uptr->tape_ctx;
     return NULL;
 }
 
-/* This routine is called in the context of the main simulator thread before 
-   processing events for any unit. It is only called when an asynchronous 
-   thread has called sim_activate() to activate a unit.  The job of this 
+/* This routine is called in the context of the main simulator thread before
+   processing events for any unit. It is only called when an asynchronous
+   thread has called sim_activate() to activate a unit.  The job of this
    routine is to put the unit in proper condition to digest what may have
    occurred in the asynchronous thread.
-   
-   Since tape processing only handles a single I/O at a time to a 
-   particular tape device, we have the opportunity to possibly detect 
+
+   Since tape processing only handles a single I/O at a time to a
+   particular tape device, we have the opportunity to possibly detect
    improper attempts to issue multiple concurrent I/O requests. */
 static void _tape_completion_dispatch (UNIT *uptr)
 {
@@ -439,7 +439,7 @@ typedef struct HDR4 {       /* Also EOF4, EOV4 */
     } HDR4;
 
 typedef struct TAPE_RECORD {
-    uint32 size;
+    size_t size;
     uint8 data[1];
     } TAPE_RECORD;
 
@@ -448,35 +448,35 @@ typedef struct MEMORY_TAPE {
     uint32 file_count;      /* number of labeled files */
     uint32 record_count;    /* number of entries in the record array */
     uint32 array_size;      /* allocated size of records array */
-    uint32 block_size;      /* tape block size */
+    size_t block_size;      /* tape block size */
     TAPE_RECORD **records;
     VOL1 vol1;
     } MEMORY_TAPE;
 
-const char HDR3_RMS_STREAM[] = "HDR3020002040000" 
-                               "0000000100000000" 
-                               "0000000002000000" 
-                               "0000000000000000" 
+const char HDR3_RMS_STREAM[] = "HDR3020002040000"
+                               "0000000100000000"
+                               "0000000002000000"
+                               "0000000000000000"
                                "0000            ";
-const char HDR3_RMS_STMLF[] =  "HDR3020002050000" 
-                               "0000000100000000" 
-                               "0000000002000000" 
-                               "0000000000000000" 
+const char HDR3_RMS_STMLF[] =  "HDR3020002050000"
+                               "0000000100000000"
+                               "0000000002000000"
+                               "0000000000000000"
                                "0000            ";
-const char HDR3_RMS_FIXED[] =  "HDR3020000010000" 
-                               "0000000100000000" 
-                               "0000000002000000" 
-                               "0000000000000000" 
+const char HDR3_RMS_FIXED[] =  "HDR3020000010000"
+                               "0000000100000000"
+                               "0000000002000000"
+                               "0000000000000000"
                                "0000            ";
-const char HDR3_RMS_VARRSX[] = "HDR300000A020000" 
-                               "0000000100000000" 
-                               "0000000000000000" 
-                               "0000000000000000" 
+const char HDR3_RMS_VARRSX[] = "HDR300000A020000"
+                               "0000000100000000"
+                               "0000000000000000"
+                               "0000000000000000"
                                "0000            ";
-const char HDR3_RMS_FIXRSX[] = "HDR3020008010000" 
-                               "0000000100000000" 
-                               "0000000000000000" 
-                               "0000000000000000" 
+const char HDR3_RMS_FIXRSX[] = "HDR3020008010000"
+                               "0000000100000000"
+                               "0000000000000000"
+                               "0000000000000000"
                                "0000            ";
 
 static struct ansi_tape_parameters {
@@ -505,15 +505,15 @@ static struct ansi_tape_parameters {
     };
 
 
-static MEMORY_TAPE *ansi_create_tape (const char *label, uint32 block_size, uint32 ansi_type);
+static MEMORY_TAPE *ansi_create_tape (const char *label, size_t block_size, uint32 ansi_type);
 static MEMORY_TAPE *memory_create_tape (void);
 static void memory_free_tape (void *vtape);
-static void sim_tape_add_ansi_entry (const char *directory, 
+static void sim_tape_add_ansi_entry (const char *directory,
                                      const char *filename,
                                      t_offset FileSize,
                                      const struct stat *filestat,
                                      void *context);
-static t_bool memory_tape_add_block (MEMORY_TAPE *tape, uint8 *block, uint32 size);
+static t_bool memory_tape_add_block (MEMORY_TAPE *tape, uint8 *block, size_t size);
 
 typedef struct DOS11_HDR {
     uint16 fname[2];        /* File name (RAD50 - 6 characters) */
@@ -596,7 +596,7 @@ return SCPE_OK;
 #endif
 }
 
-/* 
+/*
    This routine is called when the simulator stops and any time
    the asynch mode is changed (enabled or disabled)
 */
@@ -781,7 +781,7 @@ switch (MT_GET_FMT (uptr)) {
                 if (uptr->recsize == 0)
                     uptr->recsize = 512;
                 if ((statb.st_size % uptr->recsize) != 0) {
-                    r = sim_messagef (SCPE_ARG, "Binary file data is not a multiple of the specifyed record size (%d)\n", (int)uptr->recsize);
+                    r = sim_messagef (SCPE_ARG, "Binary file data is not a multiple of the specified record size (%d)\n", (int)uptr->recsize);
                     fclose (f);
                     break;
                     }
@@ -810,10 +810,11 @@ switch (MT_GET_FMT (uptr)) {
                 tape->block_size = uptr->recsize;
                 block = (uint8 *)calloc (1, tape->block_size + 3);
                 while (!feof (f) && !error) {
-                    if (fgets ((char *)block, tape->block_size + 3, f)) {
+                    /* fgets() read size is int, cast accordingly. */
+                    if (fgets ((char *)block, (int) (tape->block_size + 3), f)) {
                         size_t len = strlen ((char *)block);
 
-                        while ((len > 0) && 
+                        while ((len > 0) &&
                                ((block[len - 1] == '\r') || (block[len - 1] == '\n')))
                             --len;
                         memset (block + len, ' ', tape->block_size - len);
@@ -890,7 +891,7 @@ switch (MT_GET_FMT (uptr)) {
         if (uptr->recsize == 0)
             uptr->recsize = TAR_DFLT_RECSIZE;           /* Apply default block size */
         if ((uptr->recsize % 512) != 0)
-            return sim_messagef (SCPE_ARG, "TAR format block size of %u is not a multiple of 512\n", uptr->recsize); 
+            return sim_messagef (SCPE_ARG, "TAR format block size of %" SIZE_T_FMT "u is not a multiple of 512\n", uptr->recsize);
         sim_switches |= SWMASK ('E');                   /* The TAR file must exist */
         /* fall through */
     default:
@@ -1082,7 +1083,7 @@ fprintf (st, "        accessible directly as files on the tape.\n\n");
 fprintf (st, "        FIXED format will present the contents of a file (text or binary) as\n");
 fprintf (st, "        fixed sized records/blocks with ascii text data optionally converted\n");
 fprintf (st, "        to EBCDIC.\n\n");
-fprintf (st, "        DOS11 format will present the contents of a file preceeded by a DOS11\n");
+fprintf (st, "        DOS11 format will present the contents of a file preceded by a DOS11\n");
 fprintf (st, "        14-byte header. All files will be owned by [1,1], have a default\n");
 fprintf (st, "        protection of <233> and a date in the range 1972 - 1999 with the\n");
 fprintf (st, "        month/day layout as the current year. The file name on the tape\n");
@@ -1228,7 +1229,7 @@ t_awshdr awshdr;
 size_t   rdcnt;
 t_mtrlnt buffer [256];                                  /* local tape buffer */
 t_addr   saved_pos = uptr->pos;
-uint32   bufcntr, bufcap;                               /* buffer counter and capacity */
+size_t   bufcntr, bufcap;                               /* buffer counter and capacity */
 int32    runaway_counter, sizeof_gap;                   /* bytes remaining before runaway and bytes per gap */
 t_stat   status = MTSE_OK;
 
@@ -1238,7 +1239,7 @@ MT_CLR_PNU (uptr);                                      /* clear the position-no
 if ((uptr->flags & UNIT_ATT) == 0)                      /* if the unit is not attached */
     return MTSE_UNATT;                                  /*   then quit with an error */
 
-if ((uptr->tape_eom > 0) && 
+if ((uptr->tape_eom > 0) &&
     (uptr->pos >= uptr->tape_eom)) {
     MT_SET_PNU (uptr);                                  /*   then set position not updated */
     return MTSE_EOM;                                    /*     and quit with I/O error status */
@@ -1401,7 +1402,7 @@ switch (f) {                                       /* otherwise the read method 
             }
         else {
             if ((feof (uptr->fileref)) ||               /* eof? */
-                ((tpcbc == TPC_EOM) && 
+                ((tpcbc == TPC_EOM) &&
                  (sim_fsize (uptr->fileref) == (uint32)sim_ftell (uptr->fileref)))) {
                 MT_SET_PNU (uptr);                      /* pos not upd */
                 status = MTSE_EOM;
@@ -1482,7 +1483,7 @@ switch (f) {                                       /* otherwise the read method 
         saved_pos = (t_addr)sim_ftell (uptr->fileref);/* save record data address */
         (void)sim_tape_seek (uptr, uptr->pos); /* for read */
         rdcnt = sim_fread (&awshdr, sizeof (t_awslnt), 3, uptr->fileref);
-        if ((rdcnt == 3) && 
+        if ((rdcnt == 3) &&
             ((awshdr.prelen != *bc) || ((awshdr.rectyp != AWS_REC) && (awshdr.rectyp != AWS_TMK)))) {
             status = MTSE_INVRL;
             uptr->tape_eom = uptr->pos;
@@ -1498,7 +1499,7 @@ switch (f) {                                       /* otherwise the read method 
                 *bc = (t_mtrlnt)uptr->recsize;              /* TAR record size */
             else
                 *bc = (t_mtrlnt)(uptr->hwmark - uptr->pos); /* TAR remnant last record */
-            (void)sim_tape_seek (uptr, uptr->pos); 
+            (void)sim_tape_seek (uptr, uptr->pos);
             uptr->pos += *bc;
             MT_CLR_INMRK (uptr);
             }
@@ -1524,7 +1525,8 @@ switch (f) {                                       /* otherwise the read method 
                 if (tape->records[uptr->pos]->size == 0)
                     status = MTSE_TMK;
                 else
-                    *bc = tape->records[uptr->pos]->size;
+                    /* Should check range here. */
+                    *bc = (t_mtrlnt) tape->records[uptr->pos]->size;
                 ++uptr->pos;
                 }
             }
@@ -1602,7 +1604,7 @@ t_tpclnt tpcbc;
 t_awshdr awshdr;
 size_t   rdcnt;
 t_mtrlnt buffer [256];                                  /* local tape buffer */
-uint32   bufcntr, bufcap;                               /* buffer counter and capacity */
+size_t   bufcntr, bufcap;                               /* buffer counter and capacity */
 int32    runaway_counter, sizeof_gap;                   /* bytes remaining before runaway and bytes per gap */
 t_stat   status = MTSE_OK;
 
@@ -1643,7 +1645,7 @@ switch (f) {                                            /* otherwise the read me
                     bufcap = 1;                         /*   then start with just one marker */
 
                 else if (uptr->pos < sizeof (buffer))   /* otherwise if less than a full buffer remains */
-                    bufcap = (uint32) uptr->pos         /*   then reduce the capacity accordingly */
+                    bufcap = (size_t) uptr->pos         /*   then reduce the capacity accordingly */
                                / sizeof (t_mtrlnt);
 
                 else                                    /* otherwise reset the capacity */
@@ -1796,8 +1798,8 @@ switch (f) {                                            /* otherwise the read me
                 status = MTSE_EOM;
                 break;
                 }
-            if ((rdcnt != 3) || 
-                ((awshdr.rectyp != AWS_REC) && 
+            if ((rdcnt != 3) ||
+                ((awshdr.rectyp != AWS_REC) &&
                  (awshdr.rectyp != AWS_TMK))) {
                 status = MTSE_INVRL;
                 }
@@ -1808,8 +1810,8 @@ switch (f) {                                            /* otherwise the read me
         if (awshdr.prelen == 0)
             status = MTSE_TMK;
         else {
-            if ((uptr->tape_eom > 0) && 
-                (uptr->pos >= uptr->tape_eom) && 
+            if ((uptr->tape_eom > 0) &&
+                (uptr->pos >= uptr->tape_eom) &&
                 (awshdr.rectyp == AWS_TMK)) {
                 status = MTSE_TMK;
                 *bc = 0;                                /* save rec lnt */
@@ -1845,7 +1847,7 @@ switch (f) {                                            /* otherwise the read me
              *bc = (t_mtrlnt)uptr->recsize;
          if (*bc) {
              uptr->pos -= *bc;
-             (void)sim_tape_seek (uptr, uptr->pos); 
+             (void)sim_tape_seek (uptr, uptr->pos);
              }
         break;
 
@@ -1859,7 +1861,8 @@ switch (f) {                                            /* otherwise the read me
             if (tape->records[uptr->pos]->size == 0)
                 status = MTSE_TMK;
             else
-                *bc = tape->records[uptr->pos]->size;
+                /* Should check range here. */
+                *bc = (t_mtrlnt) tape->records[uptr->pos]->size;
             }
         break;
 
@@ -2136,7 +2139,7 @@ if (ferror (uptr->fileref)) {               /* error? */
     MT_SET_PNU (uptr);                      /* pos not upd */
     return sim_tape_ioerr (uptr);
     }
-if ((!sim_tape_bot (uptr)) && 
+if ((!sim_tape_bot (uptr)) &&
     (((feof (uptr->fileref)) && (rdcnt < 3)) || /* eof? */
      ((awshdr.rectyp != AWS_REC) && (awshdr.rectyp != AWS_TMK)))) {
     MT_SET_PNU (uptr);                      /* pos not upd */
@@ -2152,7 +2155,7 @@ if (bc)
     (void)sim_fwrite (buf, sizeof (uint8), bc, uptr->fileref);
 uptr->pos += sizeof (awshdr) + bc;
 if ((!replacing_record) || (bc == 0)) {
-    awshdr.prelen = bc;
+    awshdr.prelen = (t_awslnt) bc;
     awshdr.nxtlen = 0;
     awshdr.rectyp = AWS_TMK;
     (void)sim_fwrite (&awshdr, sizeof (t_awslnt), 3, uptr->fileref);
@@ -2178,13 +2181,13 @@ if (ctx == NULL)                                        /* if not properly attac
 if (sim_tape_wrp (uptr))                                /* write prot? */
     return MTSE_WRP;
 (void)sim_tape_seek (uptr, uptr->pos);                  /* set pos */
-(void)sim_fwrite (&dat, sizeof (t_mtrlnt), 1, uptr->fileref);
+(void)sim_fwrite (&dat, sizeof (uint32), 1, uptr->fileref);
 if (ferror (uptr->fileref)) {                           /* error? */
     MT_SET_PNU (uptr);
     return sim_tape_ioerr (uptr);
     }
 sim_debug_unit (MTSE_DBG_STR, uptr, "wr_lnt: lnt: %d, pos: %" T_ADDR_FMT "u\n", dat, uptr->pos);
-uptr->pos = uptr->pos + sizeof (t_mtrlnt);              /* move tape */
+uptr->pos = uptr->pos + sizeof (uint32);                /* move tape */
 if (uptr->pos > uptr->tape_eom)
     uptr->tape_eom = uptr->pos;                         /* update EOM */
 return MTSE_OK;
@@ -2867,7 +2870,7 @@ if (ctx == NULL)                                        /* if not properly attac
     return sim_messagef (SCPE_IERR, "Bad Attach\n");    /*   that's a problem */
 sim_debug_unit (ctx->dbit, uptr, "sim_tape_sprecsf(unit=%d, count=%d)\n", (int)(uptr-ctx->dptr->units), count);
 
-while (*skipped < count) {                              /* loopo */
+while (*skipped < count) {                              /* loop */
     st = sim_tape_sprecf (uptr, &tbc);                  /* spc rec */
     if (st != MTSE_OK)
         return st;
@@ -2964,7 +2967,7 @@ if (ctx == NULL)                                        /* if not properly attac
     return sim_messagef (SCPE_IERR, "Bad Attach\n");    /*   that's a problem */
 sim_debug_unit (ctx->dbit, uptr, "sim_tape_sprecsr(unit=%d, count=%d)\n", (int)(uptr-ctx->dptr->units), count);
 
-while (*skipped < count) {                              /* loopo */
+while (*skipped < count) {                              /* loop */
     st = sim_tape_sprecr (uptr, &tbc);                  /* spc rec rev */
     if (st != MTSE_OK)
         return st;
@@ -3025,7 +3028,7 @@ if (check_leot) {
     }
 *skipped = 0;
 *recsskipped = 0;
-while (*skipped < count) {                              /* loopo */
+while (*skipped < count) {                              /* loop */
     while (1) {
         st = sim_tape_sprecsf (uptr, 0x1ffffff, &filerecsskipped);/* spc recs */
         *recsskipped += filerecsskipped;
@@ -3131,7 +3134,7 @@ if (ctx == NULL)                                        /* if not properly attac
     return sim_messagef (SCPE_IERR, "Bad Attach\n");    /*   that's a problem */
 sim_debug_unit (ctx->dbit, uptr, "sim_tape_spfilebyrecr(unit=%d, count=%d)\n", (int)(uptr-ctx->dptr->units), count);
 
-while (*skipped < count) {                              /* loopo */
+while (*skipped < count) {                              /* loop */
     while (1) {
         st = sim_tape_sprecsr (uptr, 0x1ffffff, &filerecsskipped);/* spc recs rev */
         *recsskipped += filerecsskipped;
@@ -3247,7 +3250,7 @@ if (flags & MTPOS_M_OBJ) {
     uint32 skipped;
     uint32 objsremaining = objs;
 
-    while (*objectsskipped < objs) {                       /* loopo */
+    while (*objectsskipped < objs) {                       /* loop */
         if (flags & MTPOS_M_REV)                        /* reverse? */
             r = sim_tape_sprecsr (uptr, objsremaining, &skipped);
         else
@@ -3442,18 +3445,18 @@ for (i=0; i<65535; i++) {
             sim_debug_unit (MTSE_DBG_STR, uptr, "tpc_map: summary - %u %d byte record%s\n", countmap[i], (int)i, (countmap[i] > 1) ? "s" : "");
         }
     }
-if (((last_bc != TPC_EOM) && 
+if (((last_bc != TPC_EOM) &&
      (tpos > tape_size) &&
      (!had_double_tape_mark))    ||
     (!had_double_tape_mark)      ||
-    ((objc == countmap[0]) && 
+    ((objc == countmap[0]) &&
      (countmap[0] != 2))) {     /* Unreasonable format? */
     if (last_bc != TPC_EOM)
         sim_debug_unit (MTSE_DBG_STR, uptr, "tpc_map: ERROR unexpected EOT byte count: %d\n", last_bc);
     if (tpos > tape_size)
         sim_debug_unit (MTSE_DBG_STR, uptr, "tpc_map: ERROR next record position %" T_ADDR_FMT "u beyond EOT: %" T_ADDR_FMT "u\n", tpos, tape_size);
     if (objc == countmap[0])
-        sim_debug_unit (MTSE_DBG_STR, uptr, "tpc_map: ERROR tape cnly contains tape marks\n");
+        sim_debug_unit (MTSE_DBG_STR, uptr, "tpc_map: ERROR tape only contains tape marks\n");
     free (countmap);
     free (recbuf);
     return 0;
@@ -3503,7 +3506,7 @@ return msgbuf;
 static t_stat sim_tape_validate_tape (UNIT *uptr)
 {
 t_addr saved_pos = uptr->pos;
-uint32 data_total = 0;
+size_t data_total = 0;
 uint32 tapemark_total = 0;
 uint32 record_total = 0;
 uint32 unique_record_sizes = 0;
@@ -3579,7 +3582,7 @@ while (r == SCPE_OK) {
             break;
             }
         if (0 != memcmp (buf_f, buf_r, bc_f)) {
-            sim_printf ("%d byte record contents differ when read forward amd backwards start from position %" T_ADDR_FMT "u\n", bc_f, pos_f);
+            sim_printf ("%d byte record contents differ when read forward and backwards start from position %" T_ADDR_FMT "u\n", bc_f, pos_f);
             r = MTSE_RECE;
             break;
             }
@@ -3638,7 +3641,7 @@ if (!stop_cpu) {            /* if SIGINT didn't interrupt the scan */
     if ((r != MTSE_EOM) || (sim_switches & SWMASK ('V')) || (sim_switches & SWMASK ('L')) ||
         (remaining_data > 0) ||
         (unique_record_sizes > 2 * tapemark_total)) {
-        sim_messagef (SCPE_OK, "%s %u bytes of tape data (%u record%s, %u tapemark%s)\n",
+        sim_messagef (SCPE_OK, "%s %" SIZE_T_FMT "u bytes of tape data (%u record%s, %u tapemark%s)\n",
                                (r != MTSE_EOM) ? "After processing" : "contains", data_total,
                                record_total, (record_total == 1) ? "" : "s",
                                tapemark_total, (tapemark_total == 1) ? "" : "s");
@@ -3814,11 +3817,11 @@ return SCPE_OK;
 
 /* list supported densities
 
-   translates the mask of supported densities to a string list in the form: 
-   
+   translates the mask of supported densities to a string list in the form:
+
            "(800|1600|6250)"
 
-   this string may be useful to construct a MTAB help string for a 
+   this string may be useful to construct a MTAB help string for a
    SET <unit> DENSITY= command.
 
 */
@@ -3889,7 +3892,8 @@ FILE *fTAR2 = NULL;
 FILE *fBIN = NULL;
 FILE *fTXT = NULL;
 FILE *fVAR = NULL;
-int i, j, k;
+int i;
+size_t j, k;
 t_tpclnt tpclnt;
 t_mtrlnt mtrlnt;
 t_awslnt awslnt;
@@ -3986,13 +3990,16 @@ if (aws_stat != MTSE_OK) {
 sim_switches = saved_switches;
 stat = SCPE_OK;
 for (i=0; i<files; i++) {
-    int rec_size = 1 + (rand () % max_size);
+    size_t rec_size = 1 + (rand () % max_size);
 
-    awslnt = mtrlnt = tpclnt = rec_size;
-    for (j=0; j<records; j++) {
+    awslnt = (t_awslnt) rec_size;
+    mtrlnt = (t_mtrlnt) rec_size;
+    tpclnt = (t_tpclnt) rec_size;
+    /* records: should ensure that records > 0, otherwise, this test becomes interesting. */
+    for (j=0; j < (size_t) records; j++) {
         awsrec_typ = AWS_REC;
         if (sim_switches & SWMASK ('V'))
-            sim_printf ("Writing %d byte record\n", rec_size);
+            sim_printf ("Writing %" SIZE_T_FMT "u byte record\n", rec_size);
         for (k=0; k<rec_size; k++)
             buf[k] = rand () & 0xFF;
         (void)sim_fwrite (&mtrlnt,       sizeof (mtrlnt),       1, fSIMH);
@@ -4013,7 +4020,7 @@ for (i=0; i<files; i++) {
         (void)sim_fwrite (buf, 1, rec_size, fAWS);
         if (i == 0)
             (void)sim_fwrite (buf, 1, rec_size, fAWS3);
-        stat = sim_tape_wrrecf (uptr, buf, rec_size);
+        stat = sim_tape_wrrecf (uptr, buf, (t_mtrlnt) rec_size);
         if (MTSE_OK != stat)
             goto Done_Files;
         if (rec_size & 1) {
@@ -4069,7 +4076,7 @@ tpclnt = 0xffff;
 (void)sim_fwrite (&mtrlnt, sizeof (mtrlnt), 1, fE11);
 (void)sim_fwrite (&tpclnt, sizeof (tpclnt), 1, fTPC);
 (void)sim_fwrite (buf, 1, 1, fP7B);
-/* Write an unmatched record delimiter (aka garbage) at 
+/* Write an unmatched record delimiter (aka garbage) at
    the end of the SIMH, E11 and AWS files */
 mtrlnt = 25;
 (void)sim_fwrite (&mtrlnt, sizeof (mtrlnt), 1, fSIMH);
@@ -4080,7 +4087,7 @@ mtrlnt = 25;
 (void)sim_fwrite (&mtrlnt, sizeof (mtrlnt), 1, uptr->fileref);
 (void)sim_fwrite (&mtrlnt, sizeof (mtrlnt), 1, uptr->fileref);
 (void)sim_fwrite (&mtrlnt, sizeof (mtrlnt), 1, uptr->fileref);
-for (j=0; j<records; j++) {
+for (j=0; j < (size_t) records; j++) {
     memset (buf, j, 10240);
     (void)sim_fwrite (buf, 1, 10240, fTAR);
     (void)sim_fwrite (buf, 1, 10240, fTAR2);
@@ -4213,23 +4220,23 @@ if ((SCPE_ARG != (stat = sim_tape_density_supported (buf, sizeof (buf), valid_bi
     (strcmp (buf, "")))
     return stat;
 valid_bits = MT_556_VALID;
-if ((SCPE_OK != (stat = sim_tape_density_supported (buf, sizeof (buf), valid_bits))) || 
+if ((SCPE_OK != (stat = sim_tape_density_supported (buf, sizeof (buf), valid_bits))) ||
     (strcmp (buf, "556")))
     return sim_messagef (SCPE_ARG, "stat was: %s, got string: %s\n", sim_error_text (stat), buf);
 valid_bits = MT_800_VALID | MT_1600_VALID;
-if ((SCPE_OK != (stat = sim_tape_density_supported (buf, sizeof (buf), valid_bits))) || 
+if ((SCPE_OK != (stat = sim_tape_density_supported (buf, sizeof (buf), valid_bits))) ||
     (strcmp (buf, "{800|1600}")))
     return sim_messagef (SCPE_ARG, "stat was: %s, got string: %s\n", sim_error_text (stat), buf);
 valid_bits = MT_800_VALID | MT_1600_VALID | MT_6250_VALID;
-if ((SCPE_OK != (stat = sim_tape_density_supported (buf, sizeof (buf), valid_bits))) || 
+if ((SCPE_OK != (stat = sim_tape_density_supported (buf, sizeof (buf), valid_bits))) ||
     (strcmp (buf, "{800|1600|6250}")))
     return sim_messagef (SCPE_ARG, "stat was: %s, got string: %s\n", sim_error_text (stat), buf);
 valid_bits = MT_200_VALID | MT_800_VALID | MT_1600_VALID | MT_6250_VALID;
-if ((SCPE_OK != (stat = sim_tape_density_supported (buf, sizeof (buf), valid_bits))) || 
+if ((SCPE_OK != (stat = sim_tape_density_supported (buf, sizeof (buf), valid_bits))) ||
     (strcmp (buf, "{200|800|1600|6250}")))
     return sim_messagef (SCPE_ARG, "stat was: %s, got string: %s\n", sim_error_text (stat), buf);
 valid_bits = MT_NONE_VALID | MT_800_VALID | MT_1600_VALID | MT_6250_VALID;
-if ((SCPE_OK != (stat = sim_tape_density_supported (buf, sizeof (buf), valid_bits))) || 
+if ((SCPE_OK != (stat = sim_tape_density_supported (buf, sizeof (buf), valid_bits))) ||
     (strcmp (buf, "{0|800|1600|6250}")))
     return sim_messagef (SCPE_ARG, "stat was: %s, got string: %s\n", sim_error_text (stat), buf);
 return SCPE_OK;
@@ -4292,7 +4299,7 @@ for (t = classify_tests; t->testname != NULL; t++) {
     tape_classify_file_contents (f, &mrs, &lf_lines, &crlf_lines);
     fclose (f);
     if ((mrs != t->expected_mrs) || (lf_lines != t->expected_lf_lines) || (crlf_lines != t->expected_crlf_lines))
-        return sim_messagef (SCPE_ARG, "%s was unexpectedly reported to having MRS=%d, lf_lines=%s, crlf_lines=%s\n", 
+        return sim_messagef (SCPE_ARG, "%s was unexpectedly reported to having MRS=%d, lf_lines=%s, crlf_lines=%s\n",
                                        t->testname, (int)mrs, lf_lines ? "true" : "false", crlf_lines ? "true" : "false");
     if (t->success_attach_args) {
         char args[CBUFSIZE*2];
@@ -4407,17 +4414,17 @@ static void ansi_date (time_t datetime, char date[6], t_bool y2k_date_bug)
 
     lt = localtime (&datetime);
     if (y2k_date_bug)
-        sprintf (buf, " %c%c%03d", '0' + (lt->tm_year / 10), 
-                                   '0' + (lt->tm_year % 10), 
+        sprintf (buf, " %c%c%03d", '0' + (lt->tm_year / 10),
+                                   '0' + (lt->tm_year % 10),
                                    lt->tm_yday + 1);
     else
-        sprintf (buf, "%c%02d%03d", (lt->tm_year < 100) ? ' ' : '0' + (lt->tm_year/100 - 1), 
-                                    lt->tm_year % 100, 
+        sprintf (buf, "%c%02d%03d", (lt->tm_year < 100) ? ' ' : '0' + (lt->tm_year/100 - 1),
+                                    lt->tm_year % 100,
                                     lt->tm_yday + 1);
     memcpy (date, buf, 6);
     }
 
-/* 
+/*
  * This isn't quite ANSI 'a' since several ANSI allowed characters
  * are either illegal file names on many DEC systems or are confusing
  * to OS file name parsers.
@@ -4472,7 +4479,7 @@ static void ansi_make_HDR1 (HDR1 *hdr1, VOL1 *vol, HDR4 *hdr4, const char *filen
     fn = fn_cpy;
     ext = strrchr (fn_cpy, '.');
     if (ext) {
-        while (((c = strchr (fn_cpy, '.')) != NULL) && 
+        while (((c = strchr (fn_cpy, '.')) != NULL) &&
                (c != ext))
             *c = '_';                              /* translate extra .'s to _ */
         }
@@ -4530,7 +4537,8 @@ static void ansi_fill_text_buffer (FILE *f, char *buf, size_t buf_size, size_t r
         start = ftell (f);
         if (start < 0)
             break;
-        if (!fgets (tmp, buf_size, f))
+        /* Note: fgets() uses int for number of chars to read, cast accordingly. */
+        if (!fgets (tmp, (int) buf_size, f))
             break;
         rec_size = strlen (tmp);
         if (!fixed_text) {
@@ -4557,11 +4565,12 @@ static void ansi_fill_text_buffer (FILE *f, char *buf, size_t buf_size, size_t r
                 move_size = rec_size;
             else
                 move_size = buf_size - offset;
-            /* We've got a line that stradles a block boundary */
+            /* We've got a line that straddles a block boundary */
             memcpy (buf + offset, tmp, move_size);
             offset += move_size;
             if (offset == buf_size) {
-                (void)fseek (f, start + move_size, SEEK_SET);
+                /* fseek() uses long for offsets, cast accordingly. */
+                (void)fseek (f, start + (long) move_size, SEEK_SET);
                 break;
                 }
             }
@@ -4575,7 +4584,7 @@ static void ansi_fill_text_buffer (FILE *f, char *buf, size_t buf_size, size_t r
     free (tmp);
     }
 
-static t_bool memory_tape_add_block (MEMORY_TAPE *tape, uint8 *block, uint32 size)
+static t_bool memory_tape_add_block (MEMORY_TAPE *tape, uint8 *block, size_t size)
 {
 TAPE_RECORD *rec;
 
@@ -4630,9 +4639,9 @@ static uint16 dos11_ascR50(char *inbuf)
 {
 uint16 value;
 
-value = (strchr (rad50, *inbuf++) - rad50) * 03100;
-value += (strchr (rad50, *inbuf++) - rad50) * 050;
-value += (strchr (rad50, *inbuf++) - rad50);
+value = (uint16) (strchr (rad50, *inbuf++) - rad50) * 03100;
+value += (uint16) (strchr (rad50, *inbuf++) - rad50) * 050;
+value += (uint16) (strchr (rad50, *inbuf++) - rad50);
 
 return value;
 }
@@ -4789,7 +4798,7 @@ else {
         if (data_read > 0)
             error = memory_tape_add_block (tape, block, data_read);
         }
-    } 
+    }
 
 fclose (f);
 free (block);
@@ -4887,7 +4896,7 @@ else {
 return 0;
 }
 
-MEMORY_TAPE *ansi_create_tape (const char *label, uint32 block_size, uint32 ansi_type)
+MEMORY_TAPE *ansi_create_tape (const char *label, size_t block_size, uint32 ansi_type)
 {
 MEMORY_TAPE *tape = memory_create_tape ();
 
@@ -4944,7 +4953,7 @@ else {                                                  /* Text file */
                                                1 - ansi->skip_lf_line_endings);
         /* max_record_size must fit in the 4-character ANSI RCW */
         if (max_record_size > 9999) {
-            size_t max_allowed = 9999 - 4 - 
+            size_t max_allowed = 9999 - 4 -
                                  (crlf_line_endings ? 2 - ansi->skip_crlf_line_endings :
                                                       1 - ansi->skip_lf_line_endings);
             sim_messagef (SCPE_ARG, "Text file: %s has lines longer (%d) than %s format allows (%d)\n",
@@ -4993,15 +5002,15 @@ while (!feof (f) && !error) {
     size_t data_read = tape->block_size;
 
     if (lf_line_endings || crlf_line_endings)           /* Text file? */
-        ansi_fill_text_buffer (f, (char *)block, tape->block_size, 
-                               crlf_line_endings ? ansi->skip_crlf_line_endings : ansi->skip_lf_line_endings, 
+        ansi_fill_text_buffer (f, (char *)block, tape->block_size,
+                               crlf_line_endings ? ansi->skip_crlf_line_endings : ansi->skip_lf_line_endings,
                                ansi->fixed_text);
 
     else {                                              /* Binary file */
         size_t runt = 0;
 
         data_read = fread (block, 1, tape->block_size, f);
-        if (max_record_size > 0)                /* always will be true but XCode thinks otherwise */
+        if (max_record_size > 0)                /* always will be true but Xcode thinks otherwise */
             runt = data_read % max_record_size; /* data_read (=0) % anypositivenumber == 0 */
         /* Pad short records with zeros */
         if (runt > 0) {
@@ -5040,7 +5049,7 @@ if (sim_switches & SWMASK ('V'))
 return error;
 }
 
-static void sim_tape_add_ansi_entry (const char *directory, 
+static void sim_tape_add_ansi_entry (const char *directory,
                                      const char *filename,
                                      t_offset FileSize,
                                      const struct stat *filestat,

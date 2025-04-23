@@ -123,7 +123,8 @@ static t_stat diskParse(DISK_INFO *myDisk, uint32 isVerbose)
     uint8 sectorHeadMap[256];
     uint8 sectorCylMap[256];
     uint32 sectorSize, sectorHeadwithFlags, sectRecordType;
-    uint32 hdrBytes, i;
+    size_t hdrBytes;
+    uint32 i;
     uint8 start_sect;
 
     uint32 TotalSectorCount = 0;
@@ -155,12 +156,12 @@ static t_stat diskParse(DISK_INFO *myDisk, uint32 isVerbose)
         sim_debug(myDisk->debugmask, myDisk->device, "start of track %d at file offset %ld\n", myDisk->ntracks, ftell(myDisk->file));
 
         hdrBytes = sim_fread(&imd, 1, 5, myDisk->file);
-  
+
         if ((hdrBytes == 0) && feof(myDisk->file))
             break; /* detected end of IMD file */
 
         if (hdrBytes != 5) {
-            sim_printf("SIM_IMD: Header read returned %d bytes instead of 5.\n", hdrBytes);
+            sim_printf("SIM_IMD: Header read returned %" SIZE_T_FMT "u bytes instead of 5.\n", hdrBytes);
             return (SCPE_OPENERR);
         }
 
@@ -361,7 +362,8 @@ t_stat diskCreate(FILE *fileref, const char *ctlr_comment)
     char *curptr;
     char *result;
     uint8 answer;
-    int32 len, remaining;
+    size_t len;
+    size_t remaining;
 
     if(fileref == NULL) {
         return (SCPE_OPENERR);
@@ -386,7 +388,8 @@ t_stat diskCreate(FILE *fileref, const char *ctlr_comment)
     remaining = MAX_COMMENT_LEN;
     do {
         sim_printf("IMD> ");
-        result = fgets(curptr, remaining - 3, stdin);
+        /* ISO C says that the 2nd argument is an int, not size_t. */
+        result = fgets(curptr, (int) (remaining - 3), stdin);
         if ((result == NULL) || (strcmp(curptr, ".\n") == 0)) {
             remaining = 0;
         } else {
@@ -669,7 +672,7 @@ t_stat sectWrite(DISK_INFO *myDisk,
  * does not involve changing the disk image size.)
  *
  * Any existing data on the disk image will be destroyed when Track 0, Head 0 is formatted.
- * At that time, the IMD file is truncated.  So for the trackWrite to be used to sucessfully
+ * At that time, the IMD file is truncated.  So for the trackWrite to be used to successfully
  * format a disk image, then format program must format tracks starting with Cyl 0, Head 0,
  * and proceed sequentially through all tracks/heads on the disk.
  *

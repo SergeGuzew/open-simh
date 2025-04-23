@@ -42,67 +42,78 @@ set(SIM_VIDEO_SOURCES
     ${CMAKE_SOURCE_DIR}/display/display.c
     ${CMAKE_SOURCE_DIR}/display/sim_ws.c)
 
+## Build a simulator core library, with and without AIO support. The AIO variant
+## has "_aio" appended to its name, e.g., "simhz64_aio" or "simhz64_video_aio".
 function(build_simcore _targ)
     cmake_parse_arguments(SIMH "VIDEO;INT64;ADDR64;BESM6_SDL_HACK" "" "" ${ARGN})
 
+    # Additional library targets that depend on simulator I/O:
     add_library(${_targ} STATIC ${SIM_SOURCES})
+
+    set(sim_aio_lib "${_targ}_aio")
+    add_library(${sim_aio_lib} STATIC ${SIM_SOURCES})
 
     # Components that need to be turned on while building the library, but
     # don't export out to the dependencies (hence PRIVATE.)
-    set_target_properties(${_targ} PROPERTIES
-        C_STANDARD 99
-    )
-    target_compile_definitions(${_targ} PRIVATE USE_SIM_CARD USE_SIM_IMD)
-    target_compile_options(${_targ} PRIVATE ${EXTRA_TARGET_CFLAGS})
-    target_link_options(${_targ} PRIVATE ${EXTRA_TARGET_LFLAGS})
+    foreach (lib IN ITEMS "${_targ}" "${sim_aio_lib}")
+        set_target_properties(${lib} PROPERTIES
+            C_STANDARD 99
+            EXCLUDE_FROM_ALL True
+        )
+        target_compile_definitions(${lib} PRIVATE USE_SIM_CARD USE_SIM_IMD)
+        target_compile_options(${lib} PRIVATE ${EXTRA_TARGET_CFLAGS})
+        target_link_options(${lib} PRIVATE ${EXTRA_TARGET_LFLAGS})
 
-    # Make sure that the top-level directory is part of the libary's include path:
-    target_include_directories("${_targ}" PUBLIC "${CMAKE_SOURCE_DIR}")
+        # Make sure that the top-level directory is part of the libary's include path:
+        target_include_directories("${lib}" PUBLIC "${CMAKE_SOURCE_DIR}")
 
-    if (SIMH_INT64)
-        target_compile_definitions(${_targ} PUBLIC USE_INT64)
-    endif (SIMH_INT64)
+        if (SIMH_INT64)
+            target_compile_definitions(${lib} PUBLIC USE_INT64)
+        endif (SIMH_INT64)
 
-    if (SIMH_ADDR64)
-        target_compile_definitions(${_targ} PUBLIC USE_ADDR64)
-    endif (SIMH_ADDR64)
+        if (SIMH_ADDR64)
+            target_compile_definitions(${lib} PUBLIC USE_ADDR64)
+        endif (SIMH_ADDR64)
 
-    if (SIMH_VIDEO)
-        if (WITH_VIDEO)
-            # It's the video library
-            target_sources(${_targ} PRIVATE ${SIM_VIDEO_SOURCES})
-            target_link_libraries(${_targ} PUBLIC simh_video)
+        if (SIMH_VIDEO)
+            if (WITH_VIDEO)
+                # It's the video library
+                target_sources(${lib} PRIVATE ${SIM_VIDEO_SOURCES})
+                target_link_libraries(${lib} PUBLIC simh_video)
+            endif ()
+            if (CMAKE_HOST_APPLE AND NOT SIMH_BESM6_SDL_HACK)
+                ## (a) The BESM6 SDL hack is temporary. If SDL_MAIN_AVAILABLE needs
+                ##     to be defined, it belongs in the simh_video interface library.
+                ## (b) BESM6 doesn't use SIMH's video capabilities correctly and
+                ##     the makefile filters out SDL_MAIN_AVAILABLE on macOS.
+                ## (c) This shouldn't be just an Apple platform quirk; SDL_main should
+                ##     be used by all platforms. <sigh!>
+                target_compile_definitions("${lib}" PUBLIC SDL_MAIN_AVAILABLE)
+            endif ()
         endif ()
-        if (CMAKE_HOST_APPLE AND NOT SIMH_BESM6_SDL_HACK)
-            ## (a) The BESM6 SDL hack is temporary. If SDL_MAIN_AVAILABLE needs
-            ##     to be defined, it belongs in the simh_video interface library.
-            ## (b) BESM6 doesn't use SIMH's video capabilities correctly and
-            ##     the makefile filters out SDL_MAIN_AVAILABLE on macOS.
-            ## (c) This shouldn't be just an Apple platform quirk; SDL_main should
-            ##     be used by all platforms. <sigh!>
-            target_compile_definitions("${_targ}" PUBLIC SDL_MAIN_AVAILABLE)
+
+        # Define SIM_BUILD_TOOL for the simulator'
+        target_compile_definitions("${lib}" PRIVATE
+             "SIM_BUILD_TOOL=CMake (${CMAKE_GENERATOR})"
+        )
+
+        target_link_libraries(${lib} PUBLIC
+            simh_network
+            simh_regexp
+            os_features
+            thread_lib
+        )
+
+        # Ensure that sim_rev.h picks up .git-commit-id.h if the git command is
+        # available.
+        if (GIT_COMMAND)
+            target_compile_definitions("${lib}" PRIVATE SIM_NEED_GIT_COMMIT_ID)
         endif ()
-    endif ()
 
-    target_link_libraries(${_targ} PUBLIC
-        simh_network
-        simh_regexp
-        os_features
-        thread_lib
-    )
+        add_dependencies(${lib} update_sim_commit)
+    endforeach ()
 
-    # Define SIM_BUILD_TOOL for the simulator'
-    target_compile_definitions("${_targ}" PRIVATE
-         "SIM_BUILD_TOOL=CMake (${CMAKE_GENERATOR})"
-    )
-
-    # Ensure that sim_rev.h picks up .git-commit-id.h if the git command is
-    # available.
-    if (GIT_COMMAND)
-        target_compile_definitions("${_targ}" PRIVATE SIM_NEED_GIT_COMMIT_ID)
-    endif ()
-
-    add_dependencies(${_targ} update_sim_commit)
+    target_compile_definitions(${sim_aio_lib} PUBLIC ${AIO_FLAGS})
 
     # Create target cppcheck rule, if detected.
     if (ENABLE_CPPCHECK AND cppcheck_cmd)
@@ -142,6 +153,7 @@ list(APPEND ADD_SIMULATOR_OPTIONS
     "FEATURE_DISPLAY"
     "NO_INSTALL"
     "BESM6_SDL_HACK"
+    "USES_AIO"
 )
 
 ## TEST: The test script name that will be executed by the simulator within CTest.
@@ -159,10 +171,13 @@ list(APPEND ADD_SIMULATOR_1ARG
 ## DEFINES: List of extra command line manifest constants ("-D" items)
 ## INCLUDES: List of extra include directories
 ## SOURCES: List of source files
+## TEST_ARGS: Additional arguments to append to the command line after
+##   "RegisterSanityCheck"
 list(APPEND ADD_SIMULATOR_NARG
     "DEFINES"
     "INCLUDES"
     "SOURCES"
+    "TEST_ARGS"
 )
 
 function (simh_executable_template _targ)
@@ -171,6 +186,12 @@ function (simh_executable_template _targ)
     if (NOT DEFINED SIMH_SOURCES)
         message(FATAL_ERROR "${_targ}: No source files?")
     endif (NOT DEFINED SIMH_SOURCES)
+
+    if (SIMH_USES_AIO AND NOT WITH_ASYNC)
+        message(WARNING
+          "!!! ${_targ}: Asynchronous I/O not enabled, but this simulator specifies USES_AIO\n"
+          "!!!           Some features will be crippled, notably networking.")
+    endif ()
 
     add_executable("${_targ}" "${SIMH_SOURCES}")
     set_target_properties(${_targ} PROPERTIES
@@ -227,6 +248,11 @@ function (simh_executable_template _targ)
         endif ()
     endif ()
 
+    # Uses AIO...
+    if (SIMH_USES_AIO)
+        set(SIMH_SIMLIB "${SIMH_SIMLIB}_aio")
+    endif()
+
     target_link_libraries("${_targ}" PUBLIC "${SIMH_SIMLIB}")
 endfunction ()
 
@@ -258,6 +284,9 @@ function (add_simulator _targ)
 
     ## Simulator-specific tests:
     list(APPEND test_cmd "${_targ}" "RegisterSanityCheck")
+    if (SIMH_TEST_ARGS)
+        list(APPEND test_cmd ${SIMH_TEST_ARGS})
+    endif ()
 
     if (DEFINED SIMH_TEST)
         string(APPEND test_fname ${CMAKE_CURRENT_SOURCE_DIR} "/tests/${SIMH_TEST}_test.ini")

@@ -2,11 +2,22 @@
 
 install_osx() {
     brew update
-    brew install pkg-config
-    brew install pcre libpng libedit
-    brew install sdl2 freetype2 sdl2_ttf
-    brew install vde
-    brew install cmake gnu-getopt coreutils
+    brew install pkg-config pcre libpng libedit sdl2 freetype2 sdl2_ttf \
+        vde cmake gnu-getopt coreutils zlib
+}
+
+install_macports() {
+    sudo port install pkgconfig pcre libpng libedit libsdl2 freetype libsdl2_ttf \
+        vde2 cmake util-linux coreutils zlib
+}
+
+install_arch_linux() {
+    sudo pacman -S --noconfirm pkgconf
+    sudo pacman -S --noconfirm pcre libpng libedit
+    sudo pacman -S --noconfirm mesa
+    sudo pacman -S --noconfirm libsm
+    sudo pacman -S --noconfirm cmake
+
 }
 
 install_linux() {
@@ -45,12 +56,29 @@ install_ucrt64() {
 	mingw-w64-ucrt-x86_64-libpcap
 }
 
+install_clang64() {
+    pacman -S --needed mingw-w64-clang-x86_64-ninja \
+	mingw-w64-clang-x86_64-cmake \
+	mingw-w64-clang-x86_64-extra-cmake-modules \
+        mingw-w64-clang-x86_64-clang \
+	mingw-w64-clang-x86_64-make \
+        mingw-w64-clang-x86_64-pcre \
+	mingw-w64-clang-x86_64-freetype \
+        mingw-w64-clang-x86_64-SDL2 \
+	mingw-w64-clang-x86_64-SDL2_ttf \
+	mingw-w64-clang-x86_64-libpcap
+}
+
+
 case "$1" in
-  osx|linux|mingw64|ucrt64)
+  osx|macports|linux|mingw64|ucrt64|clang64)
     install_"$1"
     ;;
+  arch-linux)
+    install_arch_linux
+    ;;
   *)
-    echo "$0: Need an operating system name: osx, linux, mingw64 or ucrt64"
+    echo "$0: Need an operating system name: osx, arch-linux, linux, mingw64 or ucrt64"
     exit 1
     ;;
 esac

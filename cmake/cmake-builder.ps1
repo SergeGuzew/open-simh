@@ -74,10 +74,13 @@ param (
     ## ------------------
     ## vs2022          Visual Studio 2022 (default)
     ## vs2022-xp       Visual Studio 2022 XP compat
+    ## vs2022-x64      Visual Studio 2022 64-bit
     ## vs2019          Visual Studio 2019
     ## vs2019-xp       Visual Studio 2019 XP compat
+    ## vs2019-x64      Visual Studio 2019 64-bit
     ## vs2017          Visual Studio 2017
     ## vs2017-xp       Visual Studio 2017 XP compat
+    ## vs2017-x64      Visual Studio 2017 64-bit
     ## vs2015          Visual Studio 2015
     ## mingw-make      MinGW GCC/mingw32-make
     ## mingw-ninja     MinGW GCC/ninja
@@ -92,9 +95,10 @@ param (
     [Parameter(Mandatory=$false)]
     [string] $cpack_suffix = "",
 
-    ## (optional) Simulator to build (e.g., 'vax', 'pdp11', 'pdp8', ...)
+    ## (optional) Build a specific simulator or simulators. Separate multiple
+    ## targets with a comma, ## e.g. "--target pdp8,pdp11,vax750,altairz80,3b2"
     [Parameter(Mandatory=$false)]
-    [string] $target         = "",
+    [string[]] $target     = "",
 
     ## The rest are flag arguments
 
@@ -114,6 +118,15 @@ param (
     [Parameter(Mandatory=$false)]
     [switch] $novideo        = $false,
 
+    ## Compile the SIMH simulator without AIO support.
+    [Parameter(Mandatory=$false)]
+    [switch] $noaio = $false,
+
+    ## Compile the SIMH simulator without AIO instrinsics ("lock-free" AIO),
+    ## using lock-based AIO via thread mutexes instead.
+    [Parameter(Mandatory=$false)]
+    [switch] $noaiointrinsics = $false,
+
     ## Disable the build's tests.
     [Parameter(Mandatory=$false)]
     [switch] $notest         = $false,
@@ -130,11 +143,6 @@ param (
     ## Configure and generate the build environment. Don't compile, test or install.
     [Parameter(Mandatory=$false)]
     [switch] $generate       = $false,
-
-    ## Delete the CMake cache, configure and regenerate the build environment.
-    ## Don't compile, test or install.
-    [Parameter(Mandatory=$false)]
-    [switch] $regenerate     = $false,
 
     ## Only run the tests.
     [Parameter(Mandatory=$false)]
@@ -200,10 +208,13 @@ $singleConfig = $true
 $cmakeGenMap = @{
     "vs2022"      = [GeneratorInfo]::new("Visual Studio 17 2022", $multiConfig,  $false, "",     @("-A", "Win32"));
     "vs2022-xp"   = [GeneratorInfo]::new("Visual Studio 17 2022", $multiConfig,  $false, "",     @("-A", "Win32", "-T", "v141_xp"));
+    "vs2022-x64"  = [GeneratorInfo]::new("Visual Studio 17 2022", $multiConfig,  $false, "",     @("-A", "x64", "-T", "host=x64"));
     "vs2019"      = [GeneratorInfo]::new("Visual Studio 16 2019", $multiConfig,  $false, "",     @("-A", "Win32"));
     "vs2019-xp"   = [GeneratorInfo]::new("Visual Studio 16 2019", $multiConfig,  $false, "",     @("-A", "Win32", "-T", "v141_xp"));
+    "vs2019-x64"  = [GeneratorInfo]::new("Visual Studio 17 2022", $multiConfig,  $false, "",     @("-A", "x64", "-T", "host=x64"));
     "vs2017"      = [GeneratorInfo]::new("Visual Studio 15 2017", $multiConfig,  $false, "",     @("-A", "Win32"));
     "vs2017-xp"   = [GeneratorInfo]::new("Visual Studio 15 2017", $multiConfig,  $false, "",     @("-A", "Win32", "-T", "v141_xp"));
+    "vs2017-x64"  = [GeneratorInfo]::new("Visual Studio 17 2022", $multiConfig,  $false, "",     @("-A", "x64", "-T", "host=x64"));
     "vs2015"      = [GeneratorInfo]::new("Visual Studio 14 2015", $multiConfig,  $false, "",     @());
     "mingw-make"  = [GeneratorInfo]::new("MinGW Makefiles",       $singleConfig, $false, "",     @());
     "mingw-ninja" = [GeneratorInfo]::new("Ninja",                 $singleConfig, $false, "",     @())
@@ -348,11 +359,6 @@ if ($null -eq $genInfo)
     Show-Help
 }
 
-if ($regenerate)
-{
-  $generate = $true;
-}
-
 if ($testonly)
 {
     $scriptPhases = @("test")
@@ -397,12 +403,9 @@ if (($scriptPhases -contains "generate") -or ($scriptPhases -contains "build"))
         Write-Host "** ${scriptName}: ${buildDir} exists."
     }
 
-    ## Need to regenerate?
-    if ($regenerate)
-    {
-      Remove-Item          -Force -Path ${buildDir}/CMakeCache.txt -ErrorAction SilentlyContinue | Out-Null
-      Remove-Item -Recurse -Force -Path ${buildDir}/CMakeFiles     -ErrorAction SilentlyContinue | Out-Null
-    }
+    ## Unconditionally remove the CMake cache.
+    Remove-Item          -Force -Path ${buildDir}/CMakeCache.txt -ErrorAction SilentlyContinue | Out-Null
+    Remove-Item -Recurse -Force -Path ${buildDir}/CMakeFiles     -ErrorAction SilentlyContinue | Out-Null
    
     ## Where we do the heaving lifting:
     $generateArgs = @("-G", $genInfo.Generator)
@@ -422,6 +425,14 @@ if (($scriptPhases -contains "generate") -or ($scriptPhases -contains "build"))
     if ($novideo)
     {
       $generateArgs += @("-DWITH_VIDEO:Bool=Off")
+    }
+    if ($noaio)
+    {
+      $generateArgs += @("-DWITH_ASYNC:Bool=Off")
+    }
+    if ($noaiointrinsics)
+    {
+      $generateArgs += @("-DDONT_USE_AIO_INTRINSICS:Bool=On")
     }
     if ($lto)
     {
@@ -454,7 +465,9 @@ if (($scriptPhases -contains "generate") -or ($scriptPhases -contains "build"))
         $buildArgs += "-DWINAPI_DEPRECATION:Bool=TRUE"
     }
     if (![String]::IsNullOrEmpty($target)) {
-        $buildArgs += @("--target", "$target")
+        foreach ($targ in $target) {
+          $buildArgs += @("--target", "$targ")
+        }
     }
     
     $buildSpecificArgs = @()
@@ -482,14 +495,14 @@ foreach ($phase in $scriptPhases) {
             Write-Host "** ${scriptName}: Configuring and generating"
 
             $phaseCommand = ${cmakeCmd}
-            $argList = Quote-Args $generateArgs
+            $argList = $generateArgs
         }
 
         "build" {
             Write-Host "** ${scriptName}: Building simulators."
 
             $phaseCommand = ${cmakeCmd}
-            $argList = $(Quote-Args $buildArgs) + $(Quote-Args $buildSpecificArgs)
+            $argList = $buildArgs + $buildSpecificArgs
         }
 
         "test" {
@@ -511,11 +524,12 @@ foreach ($phase in $scriptPhases) {
             }
 
             if (![String]::IsNullOrEmpty($target)) {
-                $testArgs += @("-R", "simh-${target}`$")
+                $tests = "simh-(" + ($target -join "|") + ")`$"
+                $testArgs += @("-R", $tests)
             }
          
             $phaseCommand = ${ctestCmd}
-            $argList = Quote-Args $testArgs
+            $argList = $testArgs
 
             $env:PATH = $modPath
 
@@ -542,13 +556,13 @@ foreach ($phase in $scriptPhases) {
             }
 
             $phaseCommand = ${cmakeCmd}
-            $argList = Quote-Args @( "--install", "${buildDir}", "--config", "${config}")
+            $argList = @( "--install", "${buildDir}", "--config", "${config}")
         }
     }
 
     try {
         Push-Location ${buildDir}
-        Write-Host "** ${phaseCommand} ${argList}"
+        Write-Host "** ${phaseCommand} $(Quote-Args ${argList})"
         & $phaseCommand @arglist
         if ($LastExitCode -gt 0) {
             $printPhase = (Get-Culture).TextInfo.ToTitleCase($phase)

@@ -5,7 +5,7 @@
   - [Why CMake?](#why-cmake)
   - [Before You Begin Building...](#before-you-begin-building)
     - [Toolchains and Tools](#toolchains-and-tools)
-      - [Ninja: "failed recompaction: Permission denied"](#ninja-file-recompation-permission-denied)
+      - [Ninja: "failed recompaction: Permission denied"](#ninja-file-recompaction-permission-denied)
       - [Windows XP-compatible/Server 2003 binaries](#windows-xp-compatibleserver-2003-binaries)
     - [Feature Libraries](#feature-libraries)
       - [Linux, macOS and MinGW-w64](#linux-macos-and-mingw-w64)
@@ -43,7 +43,7 @@ framework. A sample of the supported build environments include:
   - Unix Makefiles
   - [MinGW Makefiles][mingw64]
   - [Ninja][ninja]
-  - macOS XCode
+  - macOS Xcode
   - MS Visual Studio solutions (2015, 2017, 2019, 2022)
   - IDE build wrappers ([Sublime Text][sublime] and [CodeBlocks][codeblocks])
 
@@ -90,7 +90,7 @@ Before you begin building the simulators, you need the following:
     `pacman`, `rpm`, ...)
 
       apt: `sudo apt install cmake cmake-data`
-      
+
       pacman: `sudo pacman install cmake`
 
   - macOS: Install `cmake` using your preferred external package management
@@ -100,14 +100,14 @@ Before you begin building the simulators, you need the following:
 
       MacPorts: `sudo port install cmake`
 
-  - Windows: 
-  
+  - Windows:
+
     - _Visual Studio IDE, Developer command or PowerShell console windows_: No
       additional software installation needed. Microsoft provides `cmake` that
       can be invoked from the command prompt or from within the VS IDE.
       Microsoft has bundled various version of `cmake` into Visual Studio since
       VS 2015.
-  
+
     - Otherwise, install `cmake` using your preferred Windows software package
       manager, such as [Chocolatey][chocolatey] or [Scoop][scoop]. You can also
       [download and install the `cmake` binary distribution][cmake_downloads]
@@ -119,7 +119,7 @@ Before you begin building the simulators, you need the following:
     `pacman`, `rpm`, ...)
 
       apt: `sudo apt install git`
-      
+
       pacman: `sudo pacman install git`
 
   - macOS: Install `git` using your preferred external package management
@@ -141,12 +141,12 @@ Before you begin building the simulators, you need the following:
     - _Visual Studio Developer command or PowerShell console windows_: Unlike
       `cmake`, `git`'s location is not added to `PATH` or `$env:PATH`. Use the
       VS IDE for `git`-related tasks (add, commit, branch, push, pull, etc.)
- 
+
     -  Otherwise, install `git` using your preferred Windows software package
        manager, such as [Chocolatey][chocolatey] or [Scoop][scoop]. You can also
        [download and install the `git` client][gitscm_downloads] directly.
 
-- GNU Make: 
+- GNU Make:
 
   - Required for Linux and macOS. Consult your appropriate package manager to
     install `make` if it is not already installed.
@@ -189,7 +189,7 @@ to select a 32-bit target architecture and the `v141_xp` toolkit.
 
 _VS2022_: Install the `v141_xp` tools
 
-Start the Visual Studio Installler, whether this is a new VS2022 install or
+Start the Visual Studio Installer, whether this is a new VS2022 install or
 modifying an existing installation.
 
 - New install
@@ -219,7 +219,7 @@ the [command line](#cmake-command-line) or [via the IDE](#xp-compatible-build-vi
 
 _VS2019_: Install the `v141_xp` tools.
 
-Start the Visual Studio Installler, whether this is a new VS2019 install or
+Start the Visual Studio Installer, whether this is a new VS2019 install or
 modifying an existing installation.
 
 - New installation: Follow the VS 2022 "New install" instructions. The steps are
@@ -238,10 +238,10 @@ the [command line](#cmake-command-line) or [via the IDE](#xp-compatible-build-vi
 _VS2017_: There are two requirements that need to be satisfied:
 
 - `CMake` version 3.14 or higher. The `CMake` distributed with VS 2017 is
-  version 3.12. 
-  
+  version 3.12.
+
   - You will need to install a newer version of `CMake` (see above
-    for download links.) 
+    for download links.)
   - You will also need to ensure that the directory to the updated `cmake.exe` is on
     the front of your `PATH` (`cmd`) or `env:PATH` (`PowerShell`). If you are
     unsure what this means, do not proceed further.
@@ -274,19 +274,25 @@ feature libraries for and MinGW-64 Win64 native and Universal C Runtime (UCRT)
 binaries.
 
   - Linux apt-based distributions (e.g., Debian, Ubuntu):
-      
+
     ```bash
     $ sudo sh .travis/deps.sh linux
     ```
 
   - macOS Homebrew:
-      
+
     ```bash
     $ sudo sh .travis/deps.sh osx
     ```
 
+  - macOS MacPorts:
+
+    ```bash
+    $ sudo sh .travis/deps.sh macports
+    ```
+
   - MinGW-w64 Win64 console:
-  
+
     ```bash
     $ echo $MSYSTEM
     MINGW64
@@ -294,7 +300,7 @@ binaries.
     ```
 
   - MinGW-w64 UCRT console:
-  
+
     ```bash
     $ echo $MSYSTEM
     UCRT64
@@ -320,7 +326,7 @@ between the two strategies are:
      example, _"legacy"_ does not install `bzip2` as a `libpng` subdependency,
      which limits the compression methods available to `libpng` when capturing
      screenshots.
-     
+
   5. `vcpkg` installs more subdependencies, potentially increasing
      functionality. Continuing `libpng` as the example, `vcpkg` will install
      `bzip2` as a subdependency, which adds compression methods to `libpng` when
@@ -329,7 +335,7 @@ between the two strategies are:
 
   6. _"legacy"_ compiles the dependency libraries as part of the overall
      compile/build process.
-     
+
   7. `vcpkg` compiles and installs dependencies during the CMake configuration
      step, which makes the configuration process longer.
 
@@ -347,7 +353,7 @@ Setup and Usage:
     reconfigure SIMH to use these newly installed dependencies.
 
 - [`vcpkg`](https://vcpkg.io)
-  
+
   Simply set the `VCPKG_ROOT` environment variable to use the `vcpkg` strategy.
   `vcpkg` operates in [Manifest mode][vcpkg_manifest]; refer to the `vcpkg.json`
   manifest file.
@@ -355,7 +361,7 @@ Setup and Usage:
   The default platform triplets for  the Visual Studio compilers are
   `x86-windows-static` and `x64-windows-static`, depending on the architecture
   flag passed to CMake.
-  
+
   The `x64-mingw-dynamic` triplet is known to work from within a MinGW-w64
   console/terminal window using the GCC compiler.
 
@@ -371,10 +377,10 @@ Setup and Usage:
         PS C:\...> cd vcpkg
         PS C:\...\vcpkg> .\vcpkg\bootstrap-vcpkg.bat
         PS C:\...\vcpkg> cd ..\open-simh
-        PS C:\...\open-simh> 
+        PS C:\...\open-simh>
         ```
-  Then set the `VCPKG_ROOT` environment variable to the `vcpkg` installaton directory.
-    
+  Then set the `VCPKG_ROOT` environment variable to the `vcpkg` installation directory.
+
 [^1]: `vcpkg` does not support the `v141_xp` toolkit required to compile Windows
 XP binaries. Windows XP is a target platform that SIMH can hopefully deprecate
 in the future. For the time being, Windows XP is a target platform that is part
@@ -388,7 +394,7 @@ look for things, such as simulator executables.
 
 ```
 simh                      # Top-level SIMH source directory
-+-- CMakeLists.txt        # Top-level CMake configuration file 
++-- CMakeLists.txt        # Top-level CMake configuration file
 +-- BIN                   # Simulator executables (note 1)
 |   +-- Debug
 |   +-- Release
@@ -404,7 +410,7 @@ simh                      # Top-level SIMH source directory
 |   +-- build-unix        # Build directory for Unix Makefiles (note 2)
 |   +-- build-ninja       # Build directory for Ninja builder (note 2)
 |   +-- dependencies      # Install subdirectory for Windows dependency libraries
-|   |   +-- Windows-10-MSVC-19.34 
+|   |   +-- Windows-10-MSVC-19.34
 |   |   |   |...          # Feature library subdirectory for Windows legacy
 |   |   |   |...          # dependency superbuilds (note 3)
 |...
@@ -412,9 +418,9 @@ simh                      # Top-level SIMH source directory
 |   +-- build
 |   +-- install
 +-- 3b2
-|   +-- CMakeLists.txt    # 3b2 simulator CMake configuration file 
+|   +-- CMakeLists.txt    # 3b2 simulator CMake configuration file
 +-- alpha
-|   +-- CMakeLists.txt    # alpha simulator CMake configuration file 
+|   +-- CMakeLists.txt    # alpha simulator CMake configuration file
 |...
 +-- VAX
 |   +--  CMakeLists.txt   # VAX simulators family CMake configuration file
@@ -462,7 +468,7 @@ the [appveyor] CI/CD pipelines execute these scripts.
     $ git clone https://github.com/open-simh/simh.git
     $ cd simh
 
-    # Install feature dependency libraries (use "osx" instead of "linux"
+    # Install feature dependency libraries (use "osx", for HomeBrew or "macports" for MacPorts)
     # on macOS with HomeBrew.)
     $ sh .travis/deps.sh linux
 
@@ -521,7 +527,6 @@ or video support.
     --------
     --clean (-x)      Remove the build subdirectory
     --generate (-g)   Generate the build environment, don't compile/build
-    --regenerate (-r) Regenerate the build environment from scratch.
     --parallel (-p)   Enable build parallelism (parallel builds)
     --nonetwork       Build simulators without network support
     --novideo         Build simulators without video support
@@ -541,7 +546,9 @@ or video support.
                         ucrt
     --config (-c)     Specifies the build configuration: 'Release' or 'Debug'
 
-    --target          Build a specific simulator (e.g., pdp11, vax, ...)
+    --target          Build a specific simulator or simulators. Separate multiple
+                      targets by separating with a comma,
+                      e.g. "--target pdp8,pdp11,vax750,altairz80,3b2"
     --lto             Enable Link Time Optimization (LTO) in Release builds
     --debugWall       Enable maximal warnings in Debug builds
     --cppcheck        Enable cppcheck static code analysis rules
@@ -703,7 +710,7 @@ $ cmake --build .
 $ ctest --build-config Release --output-on-failure --timeout 300
 ```
 
-Examples of other things you can do from the command line: 
+Examples of other things you can do from the command line:
 
 ```sh
 # To build a specific simulator, such as b5500, specify the
@@ -888,7 +895,7 @@ $ cmake-builder.sh --flavor unix --lto ...
 PS> cake-builder.ps1 -flavor mingw-unix -lto ...
 ```
 
-Setting `RELEASE_LTO` to `True` does two things: 
+Setting `RELEASE_LTO` to `True` does two things:
 
   1. It changes the optimization level to `-O3` and turns on link-time
      optimization (`-flto`).
@@ -967,7 +974,7 @@ within the IDE. The walkthrough provides directions for VS 2022 and VS 2019.
 
      - Choose `Open>CMake...` from the `File` menu. Open the `CMakeLists.txt` file
        in the source directory where `git` just checked out SIMH's source code.
-     
+
      - The _Output_ pane should switch to "CMake" and display CMake's
        configuration output. It should look similar to the following:
 
@@ -993,8 +1000,8 @@ within the IDE. The walkthrough provides directions for VS 2022 and VS 2019.
        1> [CMake] -- Creating dependency library directory hierarchy
 
        [... snipped for brevity ...]
-       
-       1> [CMake] -- 
+
+       1> [CMake] --
        1> [CMake] -- Configuring done
        1> [CMake] -- Generating done
        1> [CMake] -- Build files have been written to: C:/Users/bsm21317/play/open-simh-gitlab/out/build/x64-Debug
@@ -1032,16 +1039,16 @@ within the IDE. The walkthrough provides directions for VS 2022 and VS 2019.
        `x64-Release` configuration. And wait for reconfiguration to finish (again.)
 
 5. Select `Build All` from the `Build` menu, or equivalently chord `Ctrl-Shift-B`
-   on the keyboard, to start the dependecy feature library superbuild.
+   on the keyboard, to start the dependency feature library superbuild.
 
      - When all dependency feature libraries have been built, the build process
        __will__ unexpectedly terminate with a _"failed recompaction: Permission
-       denied"_ error (see [this `ninja` note](#ninja-file-recompation-permission-denied).)
+       denied"_ error (see [this `ninja` note](#ninja-file-recompaction-permission-denied).)
 
        Choose `Delete Cache and Reconfigure` from the `Project` menu. This will
        cause CMake to reconfigure the project and detect the dependency feature
        libraries.
-       
+
        When reconfiguration is complete, choose `Build All` from the `Build` menu,
        or equivalently chord `Ctrl-Shift-B` on the keyboard and restart building
        the simulator suite.
@@ -1071,7 +1078,7 @@ within the IDE. The walkthrough provides directions for VS 2022 and VS 2019.
   - Click on the "Show advanced settings" link.
 
   - Change the "CMake generator" to "Visual Studio 16 2019" for VS 2019 or
-    "Visual Studio 17 2022" for VS 2022 from the "CMake generator" dropdown. 
+    "Visual Studio 17 2022" for VS 2022 from the "CMake generator" dropdown.
 
   - Save `CMakeSettings.json` (`File>Save` or `Ctrl-S`)
 
@@ -1140,18 +1147,18 @@ add_simulator(3b2
     TEST 3b2)
 ```
 
-`add_simulator` is relatively self explanitory:
+`add_simulator` is relatively self explanatory:
 
 - The first argument is the simulator's executable name: `3b2`. This generates
   an executable named `3b2` on Unix platforms or `3b2.exe` on Windows.
-  
+
 - Argument list keywords: `SOURCES`, `INCLUDES`, `DEFINES`, `LABEL` and `TEST`.
 
     - `SOURCES`: The source files that comprise the simulator. The file names
       are relative to the simulator's source directory. In the `3b2`'s case,
       this is relative to the `3B2/` subdirectory where `3B2/CMakeLists.txt` is
-      located. 
-      
+      located.
+
       [CMake][cmake] sets the variable `CMAKE_CURRENT_SOURCE_DIR` to the same
       directory from which `CMakeLists.txt` is being read.
 
@@ -1188,13 +1195,15 @@ add_simulator(3b2
       convention `[sim]_test.ini` -- the argument to the `TEST` parameter is the
       `[sim]` portion of the test script's name.
 
-- Option keywords: These determine which of [six (6) simulator core libraries](#simulator-core-libraries) is
+- Option keywords: These determine which of [simulator core libraries](#simulator-core-libraries) is
   linked with the simulator.
 
   - `FEATURE_INT64`: 64-bit integers, 32-bit pointers
   - `FEATURE_FULL64`: 64-bit integers, 64-bit pointers
   - `FEATURE_VIDEO`: Simulator video support.
   - `FEATURE_DISPLAY`: Video display support.
+  - `USES_AIO`: Asynchronous I/O support (primarily useful for simulator
+    network devices.)
 
 - `PKG_FAMILY` option: This option adds the simulator to a package "family" or
   simulator packaging group, e.g., "DEC PDP simulators". The default package
@@ -1212,14 +1221,31 @@ The `CMake` build infrastructure avoids repeatedly compiling the simulator
 libraries that represents the combination of required features: 32/64 bit
 support and video:
 
-| Library          | Video | Integer size | Address size | `add_simulator` flags |
-| :--------------- | :---: | -----------: | -----------: | :-------------------- |
-| simhcore.a       | N     | 32           | 32           |                       |
-| simhi64.a        | N     | 64           | 32           | `FEATURE_INT64`       |
-| simhz64.a        | N     | 64           | 64           | `FEATURE_FULL64`      |
-| simhcore_video.a | Y     | 32           | 32           | `FEATURE_VIDEO`       |
-| simhi64_video.a  | Y     | 64           | 32           | `FEATURE_INT64`, `FEATURE_VIDEO` |
-| simhz64_video.a  | Y     | 64           | 64           | `FEATURE_FULL64`, `FEATURE_VIDEO` |
+| Library           | Video | Integer size | Address size | `add_simulator` flags |
+| :---------------- | :---: | -----------: | -----------: | :-------------------- |
+| simhcore.a        | N     | 32           | 32           |                       |
+| simhi64.a         | N     | 64           | 32           | `FEATURE_INT64`       |
+| simhz64.a         | N     | 64           | 64           | `FEATURE_FULL64`      |
+| simhcore\_video.a | Y     | 32           | 32           | `FEATURE_VIDEO`       |
+| simhi64\_video.a  | Y     | 64           | 32           | `FEATURE_INT64`, `FEATURE_VIDEO` |
+| simhz64\_video.a  | Y     | 64           | 64           | `FEATURE_FULL64`, `FEATURE_VIDEO` |
+
+In addition to these six libraries, there are six asynchronous I/O (AIO)
+variants that are built and linked into a simulator when the `USES_AIO` feature
+flag is present in `add_simulator()`'s arguments:
+
+| Library variant        | Description |
+| :--------------------- | :---------: |
+| simhcore\_aio.a        | simhcore.a with AIO support.        |
+| simhi64\_aio.a         | simhi64.a with AIO support.         |
+| simhz64\_aio.a         | simhz64.a with AIO support.         |
+| simhcore\_video\_aio.a | simhcore\_video.a with AIO support. |
+| simhi64\_video\_aio.a  | simhi64\_video.a with AIO support.  |
+| simhz64\_video\_aio.a  | simhz64\_video.a with AIO support.  |
+
+The `EXCLUDE_FROM_ALL` property is set on each of theses libraries in CMake to
+avoid building the entire matrix. Practically speaking, 10 out of the 12 total
+libraries actually build for the entire simulator suite.
 
 Internally, these core libraries are [`CMake` interface libraries][cmake_interface_library] -- when they
 are added to a simulator's executable via `target_link_libraries`, the simulator
@@ -1263,6 +1289,17 @@ add_simulator(simulator_name
     ## Simulator needs display support (-DUSE_DISPLAY). Use
     ## in conjunction with FEATURE_VIDEO
     FEATURE_DISPLAY
+
+    ## Simulator uses asynchronous I/O, i.e., calls AIO_CHECK_EVENT
+    ## in its sim_instr() instruction simulation loop:
+    USES_AIO
+
+    ## Arguments to append after "RegisterSanityCheck". These arguments
+    ## appear between "RegisterSanityCheck" and the test script, if
+    ## given, e.g.:
+    ##
+    ##    mysimulator RegisterSanityCheck -r -t path/to/mysim_test.ini
+    TEST_ARGS "-r"
 
     ## Packaging "family" (group) to which the simulator belongs,
     ## for packagers that support grouping (Windows: NSIS .exe,
@@ -1323,7 +1360,7 @@ endif()
 2. Add your source to the `MySimulator` directory.
 
 3. Create the `CMakeLists.txt` file that invokes `add_simulator`.
-  
+
 4. Include your new simulator in the `cmake/simh-simulators.cmake` file.
 
     ```cmake
@@ -1357,14 +1394,24 @@ _Note:_ The `cmake/generate.py` script is not automatically run by `cmake` when
 the `makefile` is newer than the top-level `CMakeLists.txt`. If you have done a
 `git pull` and you get undefined symbols when a simulator is linked, the
 solution is `cmake/generate.py` to update the affected simulator
-`CMakeLists.txt` file. 
+`CMakeLists.txt` file.
 
 ```sh
 ## You have to be in the cmake subdirectory to run the generate.py script
 $ cd cmake
+$ python -m generate --help
+usage: generate.py [-h] [--debug [DEBUG]] [--srcdir SRCDIR] [--orphans]
+
+SIMH simulator CMakeLists.txt generator.
+
+options:
+  -h, --help       show this help message and exit
+  --debug [DEBUG]  Debug level (0-3, 0 == off)
+  --srcdir SRCDIR  makefile source directory.
+  --orphans        Check for packaging orphans
+
 # [simh_source] is the absolute path to your top-level SIMH source directory
-$ python -m generate
-generate.py: Expecting to emit 77 simulators.
+$ python -m generate --orphans
 generate.py: Looking for makefile, starting in [simh-source]/open-simh/cmake
 generate.py: Looking for makefile, trying [simh-source]/open-simh
 generate.py: Processing [simh-source]/open-simh/makefile
@@ -1399,6 +1446,7 @@ generate.py: all target vaxstation4000m60
 generate.py: all target microvax3100m80
 generate.py: all target vaxstation4000vlc
 generate.py: all target infoserver1000
+generate.py: all target nd100
 generate.py: all target nova
 generate.py: all target eclipse
 generate.py: all target hp2100
@@ -1451,6 +1499,7 @@ generate.py: all target sel32
 generate.py: exp target alpha
 generate.py: exp target pdq3
 generate.py: exp target sage
+generate.py: Expecting to emit 78 simulators.
 ==== writing to [simh-source]/open-simh/3B2/CMakeLists.txt
 ==== writing to [simh-source]/open-simh/ALTAIR/CMakeLists.txt
 ==== writing to [simh-source]/open-simh/AltairZ80/CMakeLists.txt
@@ -1471,6 +1520,7 @@ generate.py: exp target sage
 ==== writing to [simh-source]/open-simh/Intel-Systems/scelbi/CMakeLists.txt
 ==== writing to [simh-source]/open-simh/Interdata/CMakeLists.txt
 ==== writing to [simh-source]/open-simh/LGP/CMakeLists.txt
+==== writing to [simh-source]/open-simh/ND100/CMakeLists.txt
 ==== writing to [simh-source]/open-simh/NOVA/CMakeLists.txt
 ==== writing to [simh-source]/open-simh/PDP1/CMakeLists.txt
 ==== writing to [simh-source]/open-simh/PDP10/CMakeLists.txt
